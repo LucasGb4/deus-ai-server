@@ -46,7 +46,7 @@ Comandos permitidos: /fill, /summon, /setblock, /effect, /weather, /give, /tp, /
 
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3.1-flash-lite',
                 contents: promptDivino,
             });
 
