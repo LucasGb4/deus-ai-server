@@ -1,12 +1,19 @@
+const http = require('http');
 const WebSocket = require('ws');
 const { GoogleGenAI } = require('@google/genai');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const PORT = process.env.PORT || 8000;
-const wss = new WebSocket.Server({ port: PORT });
+const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Servidor Divino Online');
+});
 
-console.log(`Servidor Divino ativo na porta ${PORT}`);
+const wss = new WebSocket.Server({ server });
+
+server.listen(process.env.PORT || 8080, () => {
+    console.log(`Servidor Divino ativo na porta ${process.env.PORT || 8080}`);
+});
 
 wss.on('connection', (ws) => {
     console.log("Minecraft conectado!");
