@@ -3,35 +3,25 @@ const WebSocket = require('ws');
 const { GoogleGenAI } = require('@google/genai');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const PORT = process.env.PORT || 8080;
 
-const server = http.createServer((req, res) => {
-    res.writeHead(200);
-    res.end('Servidor Divino Online');
-});
-
+const server = http.createServer();
 const wss = new WebSocket.Server({ 
     server,
-    perMessageDeflate: false,
-    handleProtocols: () => false
+    perMessageDeflate: false
 });
 
-server.listen(process.env.PORT || 8080, '0.0.0.0', () => {
-    console.log(`Servidor Divino ativo na porta ${process.env.PORT || 8080}`);
-});
-
-wss.on('connection', (ws, req) => {
-    console.log("Minecraft conectado! IP:", req.socket.remoteAddress);
-
+wss.on('connection', (ws) => {
     setTimeout(() => {
         ws.send(JSON.stringify({
-            body: {
-                eventName: "PlayerMessage"
+            "header": {
+                "version": 1,
+                "requestId": "00000000-0000-0000-0000-000000000000",
+                "messagePurpose": "subscribe",
+                "messageType": "commandRequest"
             },
-            header: {
-                requestId: Math.random().toString(36).substring(2),
-                messagePurpose: "subscribe",
-                messageType: "commandRequest",
-                version: 1
+            "body": {
+                "eventName": "PlayerMessage"
             }
         }));
     }, 500);
@@ -40,21 +30,18 @@ wss.on('connection', (ws, req) => {
         let data;
         try {
             data = JSON.parse(message);
-        } catch {
+        } catch (e) {
             return;
         }
 
-        if (!data?.body?.message) return;
+        if (data.header && data.header.eventName === 'PlayerMessage') {
+            const texto = data.body.message.toLowerCase();
+            
+            if (texto.startsWith("deus ")) {
+                const pedido = texto.substring(5).trim();
+                const jogador = data.body.sender || "Jogador";
 
-        const texto = data.body.message.toLowerCase();
-        if (!texto.startsWith("deus ")) return;
-
-        const pedido = texto.substring(5).trim();
-        const jogador = data.body.sender || "Jogador";
-
-        console.log(`Pedido de ${jogador}: ${pedido}`);
-
-        const promptDivino = `
+                const promptDivino = `
 Você é a I.A. Deus Suprema do Minecraft Bedrock versão 1.26.
 O jogador ${jogador} fez o seguinte pedido: "${pedido}".
 
@@ -67,45 +54,39 @@ REGRAS OBRIGATÓRIAS:
 - Apenas os comandos, um por linha, sem texto explicativo
 
 Comandos permitidos: /fill, /summon, /setblock, /effect, /weather, /give, /tp, /time, /gamemode
-        `;
+                `;
 
-        try {
-            const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
-                contents: promptDivino,
-            });
+                try {
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-3.1-flash-lite',
+                        contents: promptDivino,
+                    });
 
-            const linhas = response.text.split('\n');
+                    const linhas = response.text.split('\n');
 
-            linhas.forEach(linha => {
-                const comando = linha.trim();
-                if (!comando.startsWith('/')) return;
-
-                ws.send(JSON.stringify({
-                    body: {
-                        commandLine: comando
-                    },
-                    header: {
-                        requestId: Math.random().toString(36).substring(2),
-                        messagePurpose: "commandRequest",
-                        messageType: "commandRequest",
-                        version: 1
-                    }
-                }));
-
-                console.log(`Comando enviado: ${comando}`);
-            });
-
-        } catch (error) {
-            console.error("Erro na IA:", error.message);
+                    linhas.forEach(linha => {
+                        const comando = linha.trim();
+                        if (comando.startsWith('/')) {
+                            ws.send(JSON.stringify({
+                                "body": {
+                                    "commandLine": comando
+                                },
+                                "header": {
+                                    "requestId": Math.random().toString(36).substring(2),
+                                    "messagePurpose": "commandRequest",
+                                    "version": 1
+                                }
+                            }));
+                        }
+                    });
+                } catch (error) {
+                    console.error(error);
+                }
+            }
         }
     });
+});
 
-    ws.on('close', (code, reason) => {
-        console.log(`Minecraft desconectado. Código: ${code} Motivo: ${reason}`);
-    });
-
-    ws.on('error', (err) => {
-        console.error("Erro WebSocket:", err.message);
-    });
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(PORT);
 });
