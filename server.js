@@ -9,26 +9,32 @@ const server = http.createServer((req, res) => {
     res.end('Servidor Divino Online');
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+    server,
+    perMessageDeflate: false,
+    handleProtocols: () => false
+});
 
-server.listen(process.env.PORT || 8080, () => {
+server.listen(process.env.PORT || 8080, '0.0.0.0', () => {
     console.log(`Servidor Divino ativo na porta ${process.env.PORT || 8080}`);
 });
 
-wss.on('connection', (ws) => {
-    console.log("Minecraft conectado!");
+wss.on('connection', (ws, req) => {
+    console.log("Minecraft conectado! IP:", req.socket.remoteAddress);
 
-    ws.send(JSON.stringify({
-        body: {
-            eventName: "PlayerMessage"
-        },
-        header: {
-            requestId: Math.random().toString(36).substring(2),
-            messagePurpose: "subscribe",
-            messageType: "commandRequest",
-            version: 1
-        }
-    }));
+    setTimeout(() => {
+        ws.send(JSON.stringify({
+            body: {
+                eventName: "PlayerMessage"
+            },
+            header: {
+                requestId: Math.random().toString(36).substring(2),
+                messagePurpose: "subscribe",
+                messageType: "commandRequest",
+                version: 1
+            }
+        }));
+    }, 500);
 
     ws.on('message', async (message) => {
         let data;
@@ -95,5 +101,11 @@ Comandos permitidos: /fill, /summon, /setblock, /effect, /weather, /give, /tp, /
         }
     });
 
-    ws.on('close', () => console.log("Minecraft desconectado."));
+    ws.on('close', (code, reason) => {
+        console.log(`Minecraft desconectado. Código: ${code} Motivo: ${reason}`);
+    });
+
+    ws.on('error', (err) => {
+        console.error("Erro WebSocket:", err.message);
+    });
 });
