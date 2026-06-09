@@ -18,6 +18,18 @@ server.listen(process.env.PORT || 8080, () => {
 wss.on('connection', (ws) => {
     console.log("Minecraft conectado!");
 
+    ws.send(JSON.stringify({
+        body: {
+            eventName: "PlayerMessage"
+        },
+        header: {
+            requestId: Math.random().toString(36).substring(2),
+            messagePurpose: "subscribe",
+            messageType: "commandRequest",
+            version: 1
+        }
+    }));
+
     ws.on('message', async (message) => {
         let data;
         try {
