@@ -1,14 +1,15 @@
 const http = require('http');
 const WebSocket = require('ws');
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 10000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-const server = http.createServer();
-const wss = new WebSocket.Server({ 
-    server,
-    perMessageDeflate: false
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Servidor Divino Online');
 });
+
+const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
     console.log("Minecraft conectado!");
